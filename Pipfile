@@ -9,6 +9,7 @@ pyfakefs = "*"
 pytest = "*"
 codecov = "*"
 pytest-cov = "*"
+black = "*"
 
 [packages]
 dagster = "*"
