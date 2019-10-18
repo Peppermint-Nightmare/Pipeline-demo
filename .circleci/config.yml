@@ -5,7 +5,7 @@ jobs:
       - image: circleci/python:3.7.3
     steps:
       - checkout
-      - run: pytest
+      - run: pip install pipenv; pipenv sync -d; pytest
 workflows:
   version: 2
   test:
