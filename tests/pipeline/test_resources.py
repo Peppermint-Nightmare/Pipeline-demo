@@ -19,10 +19,10 @@ class TestSFTPResource:
     @pytest.mark.parametrize(
         'file_to_put',
         [
-            # {'from_path': '/a/b/c/somefile.txt', 'to_path': '/tmp/somefile.txt', 'mkdirs': False},
+            {'from_path': '/a/somefile.txt', 'to_path': '/tmp/somefile.txt', 'mkdirs': False},
             {'from_path': 'root_located_file', 'to_path': '/1_file/2_file', 'mkdirs': True},
-            # {'from_path': '/i/am/a/path/to/a/file', 'to_path': '/red_file/blue_file', 'mkdirs': True},
-            # {'from_path': '/root_file.dat', 'to_path': '/root_file.dat', 'mkdirs': False},
+            {'from_path': '/i/am/a/path/to/a/file', 'to_path': '/red_file/blue_file', 'mkdirs': True},
+            {'from_path': '/root_file.dat', 'to_path': '/diff_root_file.dat', 'mkdirs': False},
         ],
     )
     def test_put_file(sftpserver, files, tmp_path, file_to_put):
@@ -33,6 +33,9 @@ class TestSFTPResource:
                 file_to_put['from_path'] = os.path.join(tmp_path, file_to_put['from_path'].strip('/'))
                 assert not sftp_resource.exists(file_to_put['to_path'])
 
+                local_dir = os.path.split(file_to_put['from_path'])[0]
+                if not os.path.isdir(local_dir):
+                    os.makedirs(local_dir)
                 with open(file_to_put['from_path'], 'w+') as f:
                     f.write('This is a file!')
                 sftp_resource.put_file(**file_to_put)
