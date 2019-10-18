@@ -77,7 +77,7 @@ class TestSFTPResource:
         'ls_params, expected_output',
         [
             ({'path': 'listed_dir', 'include_dirs': False}, ['a', 'b']),
-            ({'path': 'listed_dir', 'include_dirs': True}, ['a', 'b', 'subdir']),
+            ({'path': 'listed_dir', 'include_dirs': True}, ['a', 'b', 'subdir', 'other_subdir']),
             ({'path': '/', 'include_dirs': False}, ['root_file.dat']),
             ({'path': '/', 'include_dirs': True}, ['root_file.dat', 'tmp', 'a_dir', 'listed_dir']),
         ],
