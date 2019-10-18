@@ -19,6 +19,11 @@ jobs:
             pipenv sync -d
 
       - run:
+          name: Black Check
+          command: |
+            black --check . --skip-string-normalization \
+
+      - run:
           name: Run Pytest
           command: |
             pipenv run pytest -vvx --ff --cov=src tests/
