@@ -21,7 +21,7 @@ jobs:
       - run:
           name: Black Check
           command: |
-            black --check . --skip-string-normalization \
+            pipenv run black --check . --skip-string-normalization \
 
       - run:
           name: Run Pytest
