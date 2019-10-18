@@ -1,19 +1,6 @@
 from src.pipeline.resources import SFTPResource
+import os
 import pytest
-
-
-@pytest.fixture
-def files():
-    return {
-        'root_file.dat': 'root file contents',
-        'tmp': {},
-        'a_dir': {'somefile.txt': "File content"},
-        'listed_dir': {
-            'a': 'a_contents',
-            'b': 'b_contents',
-            'subdir': {'sub_c': 'sub_c_contents', 'subsubdir': {'subsub_d': 'subsub_d_contents'}},
-        },
-    }
 
 
 class TestSFTPResource:
@@ -26,29 +13,60 @@ class TestSFTPResource:
             assert res.connected is True
             res.close()
             assert res.connected is False
+            print(res)
 
     @staticmethod
-    def test_put_file(sftpserver, files):
+    @pytest.mark.parametrize(
+        'file_to_put',
+        [
+            {'from_path': '/a/somefile.txt', 'to_path': '/tmp/somefile.txt', 'mkdirs': False},
+            {'from_path': 'root_located_file', 'to_path': '/1_file/2_file', 'mkdirs': True},
+            {'from_path': '/i/am/a/path/to/a/file', 'to_path': '/red_file/blue_file', 'mkdirs': True},
+            {'from_path': '/root_file.dat', 'to_path': '/diff_root_file.dat', 'mkdirs': False},
+        ],
+    )
+    def test_put_file(sftpserver, files, tmp_path, file_to_put):
         with sftpserver.serve_content(files):
             with SFTPResource(
                 hostname=sftpserver.host, port=sftpserver.port, username='user', password='pw'
             ) as sftp_resource:
-                assert not sftp_resource.exists('/tmp/somefile.txt')
-                with open('/tmp/somefile.txt', 'w+') as f:
+                file_to_put['from_path'] = os.path.join(tmp_path, file_to_put['from_path'].strip('/'))
+                assert not sftp_resource.exists(file_to_put['to_path'])
+
+                local_dir = os.path.split(file_to_put['from_path'])[0]
+                if not os.path.isdir(local_dir):
+                    os.makedirs(local_dir)
+                with open(file_to_put['from_path'], 'w+') as f:
                     f.write('This is a file!')
-                sftp_resource.put_file('/tmp/somefile.txt')
-                assert sftp_resource.exists('/tmp/somefile.txt')
+                sftp_resource.put_file(**file_to_put)
+
+                assert sftp_resource.exists(file_to_put['to_path'])
 
     @staticmethod
-    def test_get_file(sftpserver, files):
+    @pytest.mark.parametrize(
+        'file_to_get',
+        [
+            {'from_path': '/a_dir/somefile.txt', 'to_path': '/a_dir/somefile.txt', 'mkdirs': True},
+            {'from_path': '/listed_dir/subdir/sub_c', 'to_path': '/1_file/2_file', 'mkdirs': True},
+            {'from_path': '/listed_dir/subdir/subsubdir/subsub_d', 'to_path': '/red_file/blue_file', 'mkdirs': True},
+            {'from_path': '/root_file.dat', 'to_path': '/root_file.dat', 'mkdirs': False},
+        ],
+    )
+    def test_get_file(sftpserver, files, tmp_path, file_to_get):
         with sftpserver.serve_content(files):
             with SFTPResource(
                 hostname=sftpserver.host, port=sftpserver.port, username='user', password='pw'
             ) as sftp_resource:
+                if 'to_path' in file_to_get.keys():
+                    path_to_check = os.path.join(tmp_path, file_to_get['to_path'].strip('/'))
+                    file_to_get['to_path'] = path_to_check
+                else:
+                    path_to_check = os.path.join(tmp_path, file_to_get['from_path'].strip('/'))
+                    print(path_to_check)
 
-                assert sftp_resource.exists('/a_dir/somefile.txt')
-                sftp_resource.put_file('/tmp/somefile.txt')
-                assert sftp_resource.exists('/tmp/somefile.txt')
+                assert not os.path.isfile(path_to_check)
+                sftp_resource.get_file(**file_to_get)
+                assert os.path.isfile(path_to_check)
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -91,7 +109,7 @@ class TestSFTPResource:
         'ls_params, expected_output',
         [
             ({'path': 'listed_dir', 'include_dirs': False}, ['a', 'b']),
-            ({'path': 'listed_dir', 'include_dirs': True}, ['a', 'b', 'subdir']),
+            ({'path': 'listed_dir', 'include_dirs': True}, ['a', 'b', 'subdir', 'other_subdir']),
             ({'path': '/', 'include_dirs': False}, ['root_file.dat']),
             ({'path': '/', 'include_dirs': True}, ['root_file.dat', 'tmp', 'a_dir', 'listed_dir']),
         ],
@@ -104,10 +122,17 @@ class TestSFTPResource:
                 assert [x.filename for x in sftp_resource.ls(**ls_params)] == expected_output
 
     @staticmethod
-    @pytest.mark.skip(reason='Unfinished - hangs near completion - fix tree()?')
-    def test_tree(sftpserver, files):
+    @pytest.mark.parametrize(
+        'tree_params, expected_output',
+        [
+            ({'path': 'listed_dir'}, ['a', 'b', 'sub_c', 'subsub_d', 'i', 'a', 'of']),
+            ({'path': 'listed_dir/subdir'}, ['sub_c', 'subsub_d']),
+            ({'path': 'listed_dir/other_subdir'}, ['i', 'a', 'of']),
+        ],
+    )
+    def test_tree(sftpserver, files, tree_params, expected_output):
         with sftpserver.serve_content(files):
             with SFTPResource(
                 hostname=sftpserver.host, port=sftpserver.port, username='user', password='pw'
             ) as sftp_resource:
-                sftp_resource.tree('listed_dir')
+                assert [x.filename for x in sftp_resource.tree(**tree_params)] == expected_output
