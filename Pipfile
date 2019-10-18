@@ -8,6 +8,7 @@ pytest-sftpserver = "*"
 pyfakefs = "*"
 pytest = "*"
 codecov = "*"
+pytest-cov = "*"
 
 [packages]
 dagster = "*"
