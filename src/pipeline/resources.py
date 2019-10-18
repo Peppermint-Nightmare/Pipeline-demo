@@ -93,23 +93,19 @@ class SFTPResource:
         except Exception as e:
             return False
 
-    def tree(self, path, max_depth=None):
+    def tree(self, path):
         ''' List the contents of a given directory and all subdirectories '''
-        raise NotImplementedError
-
         files = []
-        for f in self._recurse_directory(path):
-            files.append(f)
+        for file in self._recurse_directory(path):
+            files.append(file)
         return files
 
-    def _recurse_directory(self, current_directory, max_iterations=None, iteration_count=0):
+    def _recurse_directory(self, current_directory):
         ''' Iterable, recurses directories within the remote host. Returns file attributes '''
-        raise NotImplementedError
-
-        for attr in self.sftp_client.listdir_iter(current_directory):
+        for attr in self.sftp_client.listdir_attr(current_directory):
             if not stat.S_ISDIR(attr.st_mode):
                 yield attr
-            else:
+            elif stat.S_ISDIR(attr.st_mode):
                 yield from self._recurse_directory(os.path.join(current_directory, attr.filename))
 
     def _mkdirs(self, path):
