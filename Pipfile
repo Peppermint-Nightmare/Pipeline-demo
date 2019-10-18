@@ -6,11 +6,13 @@ verify_ssl = true
 [dev-packages]
 pytest-sftpserver = "*"
 pyfakefs = "*"
+pytest = "*"
 
 [packages]
 dagster = "*"
 dash = "*"
 pandas = "*"
+paramiko = "*"
 
 [requires]
 python_version = "3.7"
