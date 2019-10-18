@@ -71,13 +71,18 @@ class SFTPResource:
         ''' Fetch a single file from the server '''
         if to_path is None:
             to_path = from_path
+        to_dir = os.path.split(to_path)[0]
+        if mkdirs and not os.path.isdir(to_dir):
+            os.makedirs(to_dir)
         self.sftp_client.get(from_path, to_path)
 
     def put_file(self, from_path, to_path=None, mkdirs=True):
         ''' Send a single file to the server '''
         if to_path is None:
             to_path = from_path
-        print(f'Uploading from {from_path} to {to_path}')
+        to_dir = os.path.split(to_path)[0]
+        if mkdirs and not os.path.isdir(to_dir):
+            self._mkdirs(to_dir)
         self.sftp_client.put(from_path, to_path)
 
     def exists(self, path):
@@ -108,8 +113,15 @@ class SFTPResource:
                 yield from self._recurse_directory(os.path.join(current_directory, attr.filename))
 
     def _mkdirs(self, path):
-        ''' Ensure that the directory at path and all its children exist '''
-        raise NotImplementedError
+        ''' Emulates mkdir -p within the remote host '''
+        directories = path.split('/')
+        current_path = ''
+        for dir in directories:
+            current_path += f'/{dir}'
+            try:
+                self.sftp_client.chdir(current_path)
+            except IOError as err:
+                self.sftp_client.mkdir(current_path)
 
 
 @resource
