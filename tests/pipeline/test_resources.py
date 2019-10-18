@@ -1,5 +1,6 @@
 from src.pipeline.resources import SFTPResource
 import pytest
+import os
 
 
 @pytest.fixture
@@ -21,6 +22,7 @@ class TestSFTPResource:
     def test_open_close_connection(sftpserver, files):
         with sftpserver.serve_content(files):
             res = SFTPResource(hostname=sftpserver.host, port=sftpserver.port, username='user', password='pw')
+            print(res)
             assert res.connected is False
             res.connect()
             assert res.connected is True
@@ -28,27 +30,51 @@ class TestSFTPResource:
             assert res.connected is False
 
     @staticmethod
-    def test_put_file(sftpserver, files):
+    @pytest.mark.parametrize(
+        'local_filepath, remote_filepath, mkdirs',
+        [
+            ('somefile.txt', '/tmp/somefile.txt', False),
+            ('otherfile.txt', '/totally/random/path/mattfile', True),
+            ('a_poem', '/1_file/2_file/red_file/blue_file/fish.py', True),
+            ('important_documents', '/listed_dir/subdir/subsubdir/stash_here', False),
+        ],
+    )
+    def test_put_file(sftpserver, files, local_filepath, remote_filepath, mkdirs, tmp_path):
         with sftpserver.serve_content(files):
             with SFTPResource(
                 hostname=sftpserver.host, port=sftpserver.port, username='user', password='pw'
             ) as sftp_resource:
-                assert not sftp_resource.exists('/tmp/somefile.txt')
-                with open('/tmp/somefile.txt', 'w+') as f:
+                local_filepath = os.path.join(tmp_path, local_filepath)
+                assert not sftp_resource.exists(remote_filepath)
+
+                with open(local_filepath, 'w+') as f:
                     f.write('This is a file!')
-                sftp_resource.put_file('/tmp/somefile.txt')
-                assert sftp_resource.exists('/tmp/somefile.txt')
+
+                sftp_resource.put_file(from_path=local_filepath, to_path=remote_filepath, mkdirs=mkdirs)
+
+                assert sftp_resource.exists(remote_filepath)
 
     @staticmethod
-    def test_get_file(sftpserver, files):
+    @pytest.mark.parametrize(
+        'remote_filepath, local_filepath, mkdirs',
+        [
+            ('/a_dir/somefile.txt', 'tmp/somefile.txt', True),
+            ('/listed_dir/subdir/sub_c', 'mattfile', False),
+            ('/listed_dir/a', '1_file/2_file/red_file/blue_file/fish.py', True),
+            ('/root_file.dat', 'listed_dir/subdir/subsubdir/stash_here', True),
+        ],
+    )
+    def test_get_file(sftpserver, files, remote_filepath, local_filepath, mkdirs, tmp_path):
         with sftpserver.serve_content(files):
             with SFTPResource(
                 hostname=sftpserver.host, port=sftpserver.port, username='user', password='pw'
             ) as sftp_resource:
+                local_filepath = os.path.join(tmp_path, local_filepath)
+                assert not os.path.isfile(local_filepath)
 
-                assert sftp_resource.exists('/a_dir/somefile.txt')
-                sftp_resource.put_file('/tmp/somefile.txt')
-                assert sftp_resource.exists('/tmp/somefile.txt')
+                sftp_resource.get_file(remote_filepath, local_filepath)
+
+                assert os.path.isfile(local_filepath)
 
     @staticmethod
     @pytest.mark.parametrize(
