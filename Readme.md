@@ -7,3 +7,20 @@
 </p>
 
 A suite of applications demonstrating a data pipeline (Dagster.io), and a visualisation app (Dash.io).
+
+```
+├── Pipfile
+├── Pipfile.lock
+├── Readme.md
+├── conftest.py
+├── pytest.ini
+├── src
+│   ├── __init__.py
+│   └── pipeline
+│       ├── __init__.py
+│       └── resources.py
+└── tests
+    ├── app
+    └── pipeline
+        └── test_resources.py
+```
