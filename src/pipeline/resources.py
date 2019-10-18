@@ -60,36 +60,12 @@ class SFTPResource:
         self.sftp_client.close()
         self.ssh_client.close()
 
-    def ls(self, path='.'):
+    def ls(self, path='.', include_dirs=True):
         ''' List the contents of a given directory '''
-        return self.sftp_client.listdir_attr(path)
-
-    def ls_iter(self, path):
-        ''' Iterable of the contents of a given directory '''
-        for f in self.sftp_client.listdir_iter_attr(path):
-            yield f
-
-    def tree(self, path, max_depth=None):
-        ''' List the contents of a given directory and all subdirectories '''
-        files = []
-        for f in self._recurse_directory(path, max_iterations=max_depth):
-            files.append(f)
-        return files
-
-    def tree_iter(self, path, max_depth=None):
-        ''' Iterable of the contents of a given directory and all subdirectories '''
-        for f in self._recurse_directory(path, max_iterations=max_depth):
-            yield f
-
-    def _recurse_directory(self, current_directory, max_iterations=None, iteration_count=0):
-        ''' Iterable, recurses directories within the remote host. Returns file attributes '''
-        for attr in self.sftp_client.listdir_iter(current_directory):
-            if not stat.S_ISDIR(attr.st_mode):
-                print(f'file: {attr.filename}')
-                yield attr
-            else:
-                print(f'Yielding from directory: {attr.filename}')
-                yield from self._recurse_directory(os.path.join(current_directory, attr.filename))
+        if include_dirs:
+            return self.sftp_client.listdir_attr(path)
+        else:
+            return [f for f in self.sftp_client.listdir_attr(path) if not stat.S_ISDIR(f.st_mode)]
 
     def get_file(self, from_path, to_path=None, mkdirs=True):
         ''' Fetch a single file from the server '''
@@ -111,6 +87,25 @@ class SFTPResource:
             return True
         except Exception as e:
             return False
+
+    def tree(self, path, max_depth=None):
+        ''' List the contents of a given directory and all subdirectories '''
+        raise NotImplementedError
+
+        files = []
+        for f in self._recurse_directory(path):
+            files.append(f)
+        return files
+
+    def _recurse_directory(self, current_directory, max_iterations=None, iteration_count=0):
+        ''' Iterable, recurses directories within the remote host. Returns file attributes '''
+        raise NotImplementedError
+
+        for attr in self.sftp_client.listdir_iter(current_directory):
+            if not stat.S_ISDIR(attr.st_mode):
+                yield attr
+            else:
+                yield from self._recurse_directory(os.path.join(current_directory, attr.filename))
 
     def _mkdirs(self, path):
         ''' Ensure that the directory at path and all its children exist '''
