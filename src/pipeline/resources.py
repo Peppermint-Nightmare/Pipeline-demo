@@ -9,7 +9,7 @@ class SFTPResource:
     Establish a connection to a remote host via SSH.
 
     Provides methods for manipulating files/metadata on a remote host using
-    SFTP. Built with Paramiko.
+    SFTP. Built on Paramiko.
 
     Parameters
     ----------
