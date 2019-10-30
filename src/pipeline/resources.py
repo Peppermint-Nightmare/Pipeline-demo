@@ -37,7 +37,7 @@ class SFTPResource:
         self.close()
 
     def __str__(self):
-        return f'<SFTP Client::{self.username}@{self.hostname}:{self.port}::connected={self.connected}>'
+        return f'<SFTP Client::{self.username}@{self.hostname}::port={self.port}::connected={self.connected}>'
 
     @property
     def connected(self):
